@@ -29,7 +29,6 @@ class NotesState extends State<Notes> {
   Future<void> fetchNotes() async {
     final data = await DBHelper.getDataFromDB();
     setState(() {
-
       notes = data?.where((note) => note['isArchived'] != 1).toList() ?? [];
     });
   }
@@ -42,6 +41,7 @@ class NotesState extends State<Notes> {
       print("Delete note error: $e");
     }
   }
+
   Future<void> archiveNote(int id) async {
     try {
       await DBHelper.updateArchiveStatus(id, 1);
@@ -65,7 +65,7 @@ class NotesState extends State<Notes> {
           onPressed: () {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const ArchieveScreen()),
+              MaterialPageRoute(builder: (context) => ArchieveScreen()),
             );
           },
         ),
@@ -87,48 +87,48 @@ class NotesState extends State<Notes> {
       ),
       body: notes.isEmpty
           ? const Center(
-        child: Text(
-          "No notes available.",
-          style: TextStyle(fontSize: 18, color: Colors.grey),
-        ),
-      )
+              child: Text(
+                "No notes available.",
+                style: TextStyle(fontSize: 18, color: Colors.grey),
+              ),
+            )
           : ListView.builder(
-        itemCount: notes.length,
-        itemBuilder: (context, index) {
-          return Dismissible(
-            key: ValueKey(notes[index]['id']),
-            background: Container(
-              color: Colors.blue,
-              alignment: Alignment.centerLeft,
-              padding: const EdgeInsets.only(left: 20),
-              child: const Icon(
-                Icons.archive,
-                color: Colors.white,
-              ),
+              itemCount: notes.length,
+              itemBuilder: (context, index) {
+                return Dismissible(
+                  key: ValueKey(notes[index]['id']),
+                  background: Container(
+                    color: Colors.blue,
+                    alignment: Alignment.centerLeft,
+                    padding: const EdgeInsets.only(left: 20),
+                    child: const Icon(
+                      Icons.archive,
+                      color: Colors.white,
+                    ),
+                  ),
+                  secondaryBackground: Container(
+                    color: Colors.red,
+                    alignment: Alignment.centerRight,
+                    padding: const EdgeInsets.only(right: 20),
+                    child: const Icon(
+                      Icons.delete,
+                      color: Colors.white,
+                    ),
+                  ),
+                  confirmDismiss: (direction) async {
+                    if (direction == DismissDirection.startToEnd) {
+                      await archiveNote(notes[index]['id']);
+                      return false;
+                    } else if (direction == DismissDirection.endToStart) {
+                      await deleteNote(notes[index]['id']);
+                      return true;
+                    }
+                    return false;
+                  },
+                  child: noteItem(notes[index]),
+                );
+              },
             ),
-            secondaryBackground: Container(
-              color: Colors.red,
-              alignment: Alignment.centerRight,
-              padding: const EdgeInsets.only(right: 20),
-              child: const Icon(
-                Icons.delete,
-                color: Colors.white,
-              ),
-            ),
-            confirmDismiss: (direction) async {
-              if (direction == DismissDirection.startToEnd) {
-                await archiveNote(notes[index]['id']);
-                return false;
-              } else if (direction == DismissDirection.endToStart) {
-                await deleteNote(notes[index]['id']);
-                return true;
-              }
-              return false;
-            },
-            child: noteItem(notes[index]),
-          );
-        },
-      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
           final result = await Navigator.push(

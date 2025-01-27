@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'database_helper.dart';
 
 class ArchieveScreen extends StatefulWidget {
-  const ArchieveScreen({super.key});
+  ArchieveScreen({Key? key}) : super(key: key);
 
   @override
   State<ArchieveScreen> createState() => ArchieveScreenState();
@@ -18,49 +18,72 @@ class ArchieveScreenState extends State<ArchieveScreen> {
   }
 
   Future<void> fetchArchivedNotes() async {
-    final data = await DBHelper.getArchivedNotes();
+    final notes = await DBHelper.getArchivedNotes();
     setState(() {
-      archivedNotes = data ?? [];
+      archivedNotes = notes ?? [];
     });
+  }
+
+  Future<void> unarchiveNote(int id) async {
+    try {
+      await DBHelper.updateArchiveStatus(id, 0);
+      setState(() {
+        archivedNotes.removeWhere((note) => note['id'] == id);
+      });
+    } catch (e) {
+      print("Error unarchiving note: $e");
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          "Archived Notes",
-          style: TextStyle(color: Colors.black),
-        ),
-        backgroundColor: Colors.white,
-        iconTheme: const IconThemeData(color: Colors.black),
+        title: Text("Archived Notes"),
       ),
       body: archivedNotes.isEmpty
-          ? const Center(
-        child: Text(
-          "No archived notes available.",
-          style: TextStyle(fontSize: 18, color: Colors.grey),
-        ),
-      )
-          : ListView.builder(
-        itemCount: archivedNotes.length,
-        itemBuilder: (context, index) {
-          final note = archivedNotes[index];
-          return Card(
-            margin: const EdgeInsets.all(10),
-            child: ListTile(
-              title: Text(
-                note['Title'],
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
+          ? Center(
+              child: Text(
+                "No archived notes.",
+                style: TextStyle(fontSize: 18, color: Colors.grey),
               ),
-              subtitle: Text(note['Note']),
+            )
+          : ListView.builder(
+              itemCount: archivedNotes.length,
+              itemBuilder: (context, index) {
+                final note = archivedNotes[index];
+                return Dismissible(
+                  key: Key(note['id'].toString()),
+                  direction: DismissDirection.endToStart,
+                  onDismissed: (direction) {
+                    unarchiveNote(note['id']);
+                  },
+                  background: Container(
+                    color: Colors.green,
+                    alignment: Alignment.centerRight,
+                    padding: EdgeInsets.symmetric(horizontal: 20),
+                    child: Icon(
+                      Icons.unarchive,
+                      color: Colors.white,
+                      size: 30,
+                    ),
+                  ),
+                  child: Card(
+                    margin: EdgeInsets.all(10),
+                    child: ListTile(
+                      title: Text(
+                        note['Title'],
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      subtitle: Text(note['Note']),
+                    ),
+                  ),
+                );
+              },
             ),
-          );
-        },
-      ),
     );
   }
 }
